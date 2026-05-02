@@ -1,0 +1,238 @@
+####################
+ Copy the migration file into the container
+docker-compose -f docker-compose.local.yml cp backend/database/migration_015_ai_risk_profiling.sql db:/tmp/migration.sql
+
+# Execute it
+docker-compose -f docker-compose.local.yml exec db psql -U postgres -d prime -f /tmp/migration.sql
+
+# Clean up
+docker-compose -f docker-compose.local.yml exec db rm /tmp/migration.sql
+
+
+
+# Deploy ALL components (default)
+.\scripts\deploy-prod-quick.ps1
+
+# Deploy only backend
+.\scripts\deploy-prod-quick.ps1 -Backend
+
+# Deploy backend and frontend
+.\scripts\deploy-prod-quick.ps1 -Backend -Frontend
+
+# Deploy only frontend
+.\scripts\deploy-prod-quick.ps1 -Frontend
+
+# Deploy Celery (worker + beat)
+.\scripts\deploy-prod-quick.ps1 -Celery
+
+# Deploy just Celery worker
+.\scripts\deploy-prod-quick.ps1 -CeleryWorker
+
+# Deploy backend + Celery
+.\scripts\deploy-prod-quick.ps1 -Backend -Celery
+
+# Explicitly deploy all
+.\scripts\deploy-prod-quick.ps1 -All
+
+####clear cached layers in docker
+docker builder prune -f
+
+
+####for celary
+
+az containerapp revision list --name prime-celery-worker --resource-group prime-rg --query "[?properties.active].name" -o tsv
+az containerapp revision list --name prime-celery-beat --resource-group prime-rg --query "[?properties.active].name" -o tsv
+
+az containerapp revision restart --name prime-celery-worker --resource-group prime-rg --revision prime-celery-worker--0000001 
+az containerapp revision restart --name prime-celery-beat --resource-group prime-rg --revision prime-celery-beat--cue8bhf
+
+
+
+###mcp
+
+# Build with SERVICE=mcp
+docker build --no-cache -f backend/Dockerfile.prod --build-arg SERVICE=mcp -t primeguardrailsregistry.azurecr.io/prime-mcp-server:latest backend/
+# Push
+docker push primeguardrailsregistry.azurecr.io/prime-mcp-server:latest
+# Update container app
+az containerapp update --name prime-mcp-server --resource-group prime-rg --image primeguardrailsregistry.azurecr.io/prime-mcp-server:latest
+
+##see azure prod logs
+az containerapp logs show --name prime-container-app --resource-group prime-rg --tail 50
+
+# Build backend image (used by both Celery worker and beat)
+docker build --no-cache -f backend/Dockerfile.prod -t primeguardrailsregistry.azurecr.io/prime-backend:latest backend/
+
+# Tag for Azure
+docker tag prime-backend:latest primeguardrailsregistry.azurecr.io/prime-backend:latest
+
+# Login to Azure Container Registry
+az acr login --name primeguardrailsregistry
+
+# Push to Azure
+docker push primeguardrailsregistry.azurecr.io/prime-backend:latest
+
+##what is in dep table
+
+docker build -f backend/Dockerfile.prod -t primeguardrailsregistry.azurecr.io/prime-backend:latest backend/
+docker push primeguardrailsregistry.azurecr.io/prime-backend:latest
+az containerapp update --name prime-container-app --resource-group prime-rg --image primeguardrailsregistry.azurecr.io/prime-backend:latest
+
+# Frontend
+docker build -f frontend/Dockerfile.prod -t primeguardrailsregistry.azurecr.io/prime-frontend:latest frontend/
+docker push primeguardrailsregistry.azurecr.io/prime-frontend:latest
+az containerapp update --name prime-frontend --resource-group prime-rg --image primeguardrailsregistry.azurecr.io/prime-frontend:latest
+
+###login to acr
+az acr login --name primeguardrailsregistry
+
+az acr repository list --name primeguardrailsregistry --output table
+
+az acr repository show-manifests --name primeguardrailsregistry --repository prime-backend --orderby time_desc --top 1 --output table
+
+##build and push
+docker build -t presidio-service:latest presidio/
+docker tag presidio-service:latest primeguardrailsregistry.azurecr.io/presidio-service:latest
+docker push primeguardrailsregistry.azurecr.io/presidio-service:latest
+
+
+##build and push Backend and restart with verify:
+# Build with production Dockerfile
+docker build -f backend/Dockerfile.prod -t primeguardrailsregistry.azurecr.io/prime-backend:latest backend/
+
+# Push to registry
+docker push primeguardrailsregistry.azurecr.io/prime-backend:latest
+
+# Deploy to Azure
+az containerapp update --name prime-container-app --resource-group prime-rg --image primeguardrailsregistry.azurecr.io/prime-backend:latest
+
+Frontend:
+# front end Build
+docker build -t primeguardrailsregistry.azurecr.io/prime-frontend:latest -f frontend/Dockerfile.prod frontend/
+
+# Push
+docker push primeguardrailsregistry.azurecr.io/prime-frontend:latest
+
+# Deploy
+az containerapp update --name prime-frontend --resource-group prime-rg --image primeguardrailsregistry.azurecr.io/prime-frontend:latest
+
+verify
+az acr repository show-manifests --name primeguardrailsregistry --repository prime-frontend --orderby time_desc --top 1 --output table
+
+
+
+# Deploy
+az containerapp update --name prime-frontend --resource-group prime-rg --image primeguardrailsregistry.azurecr.io/prime-frontend:latest
+docker tag prime-frontend:latest primeguardrailsregistry.azurecr.io/prime-frontend:latest
+docker push primeguardrailsregistry.azurecr.io/prime-frontend:latest
+
+Then restart the container apps:
+az containerapp update --name prime-container-app --resource-group prime-rg --image primeguardrailsregistry.azurecr.io/prime-backend:latest
+az containerapp update --name prime-frontend-app --resource-group prime-rg --image primeguardrailsregistry.azurecr.io/prime-frontend:latest
+
+
+az containerapp revision list --name prime-container-app --resource-group prime-rg --output table
+
+
+
+
+
+docker-compose -f docker-compose.local.yml build --no-cache frontend
+
+
+docker-compose -f docker-compose.prod.yml up -d --force-recreate backend
+
+docker-compose -f docker-compose.local.yml restart backend mcp-server
+
+
+##Build
+az acr build --registry primeguardrailsregistry --image "prime-backend:latest" --file "backend/Dockerfile.prod" backend/
+
+az acr build --registry primeguardrailsregistry --image "prime-frontend:latest" --file "frontend/Dockerfile.prod" frontend/
+
+
+
+#create db
+az postgres flexible-server db create --resource-group prime-rg --server-name prime-postgresql --database-name prime
+
+
+#restart container
+##backend
+$revision = az containerapp revision list --name prime-container-app --resource-group prime-rg --query "[0].name" --output tsv; az containerapp revision restart --name prime-container-app --resource-group prime-rg --revision $revision
+
+#frontend
+$revision = az containerapp revision list --name prime-frontend-app --resource-group prime-rg --query "[0].name" --output tsv; az containerapp revision restart --name prime-frontend-app --resource-group prime-rg --revision $revision
+
+
+###logs
+az containerapp logs show --name prime-container-app --resource-group prime-rg --follow
+
+
+shcema and data dump
+
+C:\Users\varav\Desktop\prime>docker-compose exec db pg_dump -U postgres -d prime --data-only --no-owner --no-privileges --inserts > local_data_dump.sql
+time="2025-08-27T11:06:03-04:00" level=warning msg="C:\\Users\\varav\\Desktop\\prime\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+
+C:\Users\varav\Desktop\prime>docker-compose exec db pg_dump -U postgres -d prime --no-owner --no-privileges --inserts > local_complete_dump.sql
+time="2025-08-27T11:06:20-04:00" level=warning msg="C:\\Users\\varav\\Desktop\\prime\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+
+
+##retsrat
+
+az containerapp revision restart --name prime-frontend-app --resource-group prime-rg
+
+
+# Your Azure AD App Configuration:
+CLIENT_ID="5ac283dc-4b19-4b4b-808a-b1d19b180209"
+CLIENT_SECRET="REDACTED"
+TENANT_ID="2bfcd39b-7854-472e-9898-8827dcba77a9"
+AUTHORITY="https://login.microsoftonline.com/common"  # Multi-tenant
+
+
+###what imahe nd when created
+PS C:\Users\varav\Desktop\prime> az containerapp show --name prime-mcp-server --resource-group prime-rg --query "properties.template.containers[0].image" --output table
+Result
+----------------------------------------------------------
+primeguardrailsregistry.azurecr.io/prime-mcp-server:latest
+
+PS C:\Users\varav\Desktop\prime> az acr repository show-tags --name primeguardrailsregistry --repository prime-mcp-server --detail --orderby time_desc --output table
+CreatedTime                   Digest                                                                   LastUpdateTime                Name    Signed
+----------------------------  -----------------------------------------------------------------------  ----------------------------  ------  --------
+2025-09-21T16:30:43.4671921Z  sha256:f7a3374df17c4df3ce393ef1404a608ddd454d9d3552fa04678e298c59d4957b  2025-10-06T20:00:07.5008519Z  latest  False
+
+
+
+SELECT 
+    TO_CHAR(request_timestamp, 'HH24:MI:SS') as time,
+    interaction_type,
+    method,
+    endpoint,
+    response_status,
+    COALESCE(duration_ms::text, 'N/A') as duration_ms,
+    interaction_status,
+    COALESCE(error_message, '') as error
+FROM api_mcp_audit_logs 
+ORDER BY request_timestamp DESC 
+LIMIT 20;
+
+
+$ git add .
+$ git commit -am "make it better"
+$ git push origin main
+
+
+docker-compose -f docker-compose.local.yml down
+docker-compose -f docker-compose.local.yml up -d
+
+docker-compose -f docker-compose.local.yml logs -f backend
+
+###buld and bring it up
+docker-compose -f docker-compose.local.yml up --build
+
+docker-compose up -d --force-recreate backend
+
+
+HF token prompt injection: REDACTED
+
+
+docker-compose -f docker-compose.local.yml exec db psql -U postgres -d prime -c "UPDATE users SET hashed_password = '26127187f94f15023bedfad1ea2568ce2e8ff0a6bc690eebaa46f8417d3586c1' WHERE username IN ('admin', 'maker', 'checker', 'auditor', 'client');"

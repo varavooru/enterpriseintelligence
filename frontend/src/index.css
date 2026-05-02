@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans antialiased text-stripe-slate-900 bg-stripe-slate-100;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 bg-stripe-purple hover:bg-stripe-purple-light
+      text-white text-sm font-medium py-2 px-4 rounded-md
+      transition-all duration-150 shadow-stripe-sm hover:shadow-stripe
+      disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 bg-white hover:bg-stripe-slate-50
+      text-stripe-slate-800 text-sm font-medium py-2 px-4 rounded-md
+      border border-stripe-slate-200 transition-all duration-150 shadow-stripe-sm
+      hover:shadow-stripe hover:border-stripe-slate-300;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700
+      text-white text-sm font-medium py-2 px-4 rounded-md transition-all duration-150;
+  }
+  .input-field {
+    @apply w-full px-3 py-2 text-sm bg-white border border-stripe-slate-200 rounded-md
+      text-stripe-slate-900 placeholder:text-stripe-slate-400
+      focus:outline-none focus:ring-2 focus:ring-stripe-purple/20 focus:border-stripe-purple
+      transition-all duration-150 shadow-stripe-sm;
+  }
+  .card {
+    @apply bg-white rounded-lg border border-stripe-slate-200 shadow-stripe-sm;
+  }
+  .label {
+    @apply block text-sm font-medium text-stripe-slate-800 mb-1.5;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+}

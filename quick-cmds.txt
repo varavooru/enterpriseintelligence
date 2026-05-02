@@ -1,0 +1,33 @@
+Quick Maintenance Commands (for future reference)
+
+sudo systemctl restart nginx
+
+# Check Nginx statussystemctl status nginx# Reload after config changesnginx -t && systemctl reload nginx# View SSL certificate expirycertbot certificates# Manually renew SSL (if needed)certbot renew# View access logstail -f /var/log/nginx/access.log
+To Update the Website
+From your Windows machine:
+scp -r c:\Users\varav\Desktop\ContextIntelligence\secureai\*.html root@secureaillc.com:/var/www/html/
+Your Prime Guardrails marketing site is ready for enterprise CIOs and CTOs! 🛡
+
+
+root@secure-ai-site:/var/www/html# sudo chown -R www-data:www-data /var/www/html/images/
+root@secure-ai-site:/var/www/html# sudo chmod -R 755 /var/www/html/images/
+root@secure-ai-site:/var/www/html# sudo systemctl reload nginx
+
+
+curl -X POST http://localhost:9000/validate -H "Content-Type: application/json" -d '{"context": "Math", "question": "What is 2+2?", "answer": "4"}'
+
+docker-compose -f docker-compose.local.yml cp backend/database/migration_016_observability.sql db:/tmp/migration1.sql
+
+docker-compose -f docker-compose.local.yml exec db psql -U postgres -d prime -f /tmp/migration1.sql
+
+
+SELECT 
+    request_timestamp,
+    user_id,
+    additional_metadata->>'checks_performed' as tools_called,
+    additional_metadata->>'status' as status,
+    additional_metadata->>'risk_score' as risk_score,
+    additional_metadata->>'latency_ms' as latency_ms
+FROM api_mcp_audit_logs 
+WHERE additional_metadata->>'action_type' = 'SECURITY_GUARD'
+ORDER BY request_timestamp DESC;

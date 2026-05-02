@@ -1,0 +1,86 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "name": "Enterprise Knowledge Graph",
+    "description": "Tribal and institutional knowledge capturing business units, regulations, products, processes, and their relationships",
+    "created_at": "2026-04-30T00:00:00Z",
+    "updated_at": "2026-04-30T00:00:00Z"
+  },
+  "entities": {
+    "business_units": [
+      {
+        "id": "bu_example",
+        "name": "Example Business Unit",
+        "description": "Placeholder business unit - replace with your organization's actual BUs",
+        "metadata": {
+          "department": "Operations",
+          "head": "",
+          "employee_count": 0
+        }
+      }
+    ],
+    "regulations": [
+      {
+        "id": "reg_example",
+        "name": "Example Regulation",
+        "domain": "general",
+        "jurisdiction": "federal",
+        "status": "active",
+        "effective_date": "",
+        "metadata": {
+          "source_url": "",
+          "agency": ""
+        }
+      }
+    ],
+    "products": [
+      {
+        "id": "prod_example",
+        "name": "Example Product",
+        "description": "Placeholder product",
+        "category": "",
+        "metadata": {}
+      }
+    ],
+    "processes": [
+      {
+        "id": "proc_example",
+        "name": "Example Process",
+        "description": "Placeholder process",
+        "owner_bu": "bu_example",
+        "metadata": {}
+      }
+    ],
+    "policies": [
+      {
+        "id": "pol_example",
+        "name": "Example Internal Policy",
+        "description": "Placeholder internal policy",
+        "owner_bu": "bu_example",
+        "metadata": {}
+      }
+    ]
+  },
+  "relationships": [
+    {
+      "id": "rel_example",
+      "source": "reg_example",
+      "target": "bu_example",
+      "type": "impacts",
+      "weight": 0.5,
+      "context": "Example relationship - defines how a regulation impacts a business unit",
+      "metadata": {}
+    }
+  ],
+  "rules": [
+    {
+      "id": "rule_example",
+      "name": "Example Impact Rule",
+      "description": "When a regulation in domain X changes, flag affected business units",
+      "condition": "regulation.domain == 'general'",
+      "affected_entity_types": ["business_units"],
+      "impact_level": "medium",
+      "metadata": {}
+    }
+  ]
+}
