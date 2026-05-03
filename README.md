@@ -16,19 +16,62 @@ AI-powered platform that transforms internal and external data — regulations, 
 
 ### Prerequisites
 
-- Python 3.11+
-- Node.js 18+
 - Docker & Docker Compose
 
-### 1. Start Infrastructure
+### Option A: Run Everything in Docker (Recommended)
+
+1. Copy `.env.example` to `.env` and set your keys:
 
 ```bash
-docker-compose up -d
+cp .env.example .env
 ```
 
-This starts PostgreSQL and Qdrant.
+Edit `.env` and configure at minimum:
+- `ANTHROPIC_API_KEY`: Your Anthropic API key for Claude Opus 4.6
+- `SECRET_KEY`: Random secret for JWT token signing
 
-### 2. Backend Setup
+2. Build and start all services:
+
+```bash
+docker-compose up --build
+```
+
+That's it. The app will be available at:
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **Swagger Docs**: http://localhost:8000/docs
+
+To run in the background, add `-d`:
+
+```bash
+docker-compose up --build -d
+```
+
+To stop everything:
+
+```bash
+docker-compose down
+```
+
+To stop and remove all data volumes:
+
+```bash
+docker-compose down -v
+```
+
+### Option B: Run Backend & Frontend Locally (Development)
+
+This approach runs only the infrastructure (PostgreSQL, Qdrant) in Docker and the app natively for hot-reload.
+
+**Prerequisites**: Python 3.11+, Node.js 18+
+
+1. Start infrastructure:
+
+```bash
+docker-compose up postgres qdrant -d
+```
+
+2. Backend:
 
 ```bash
 cd backend
@@ -39,15 +82,11 @@ venv\Scripts\activate
 source venv/bin/activate
 
 pip install -r requirements.txt
-
-# Run database migrations
 alembic upgrade head
-
-# Start the backend
 uvicorn app.main:app --reload --port 8000
 ```
 
-### 3. Frontend Setup
+3. Frontend:
 
 ```bash
 cd frontend
@@ -57,7 +96,7 @@ npm run dev
 
 The frontend runs at http://localhost:5173 and proxies API requests to the backend.
 
-### 4. Configuration
+### Configuration
 
 Copy `.env.example` to `.env` and configure:
 

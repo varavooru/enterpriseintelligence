@@ -34,7 +34,7 @@ aiofiles>=24.1.0
 azure-storage-blob>=12.24.0
 
 # Utilities
-pydantic>=2.10.0
+pydantic[email]>=2.10.0
 pydantic-settings>=2.7.0
 python-dotenv>=1.0.1
 

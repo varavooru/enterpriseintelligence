@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -9,11 +7,11 @@ services:
       POSTGRES_PASSWORD: prime_ei_dev_password
       POSTGRES_DB: prime_enterprise_intelligence
     ports:
-      - "5432:5432"
+      - "5440:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U prime_ei"]
+      test: ["CMD-SHELL", "pg_isready -U prime_ei -d prime_enterprise_intelligence"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,10 +25,39 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "wget -qO- http://localhost:6333/healthz || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 15s
+
+  backend:
+    build: ./backend
+    container_name: prime_ei_backend
+    ports:
+      - "8010:8000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://prime_ei:prime_ei_dev_password@postgres:5432/prime_enterprise_intelligence
+      DATABASE_URL_SYNC: postgresql://prime_ei:prime_ei_dev_password@postgres:5432/prime_enterprise_intelligence
+      QDRANT_HOST: qdrant
+      CORS_ORIGINS: "http://localhost,http://localhost:3010,http://localhost:5173"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: prime_ei_frontend
+    ports:
+      - "3010:80"
+    depends_on:
+      - backend
 
 volumes:
   pgdata:
